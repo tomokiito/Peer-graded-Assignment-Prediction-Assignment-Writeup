@@ -92,6 +92,7 @@ Looking at the correlation matrix, we can find combinations of variables with so
 
 ### fitting a model
 Create a prediction model from the original training data.  
+We know that a model that fits the original training data does not perfectly fit the test data. Therefore, it is necessary to create a model using cross validation.
 First, 75% of the original training data is used as the training data of the model, and 25% is set as the test data.
 ```{r, cache=TRUE}
 inTrain = createDataPartition(processing$classe, p = 0.75,list=F)

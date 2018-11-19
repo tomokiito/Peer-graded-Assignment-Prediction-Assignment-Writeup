@@ -261,7 +261,7 @@ heatmap(matrix_cor,Colv = NA,Rowv = NA,col = cm.colors(256))</code></pre>
 <div id="fitting-a-model" class="section level3">
 <h3>fitting a model</h3>
 <p>Create a prediction model from the original training data.<br />
-First, 75% of the original training data is used as the training data of the model, and 25% is set as the test data.</p>
+We know that a model that fits the original training data does not perfectly fit the test data. Therefore, it is necessary to create a model using cross validation. First, 75% of the original training data is used as the training data of the model, and 25% is set as the test data.</p>
 <pre class="r"><code>inTrain = createDataPartition(processing$classe, p = 0.75,list=F)
 trainingdata = processing[ inTrain,]
 testingdata = processing[-inTrain,]
