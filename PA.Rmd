@@ -1,0 +1,137 @@
+---
+title: "Peer-graded Assignment: Prediction Assignment Writeup"
+author: "Tomoki Ito"
+date:  "`r format(Sys.time(), '%Y/%m/%d')`"
+output: 
+  html_document:
+    keep_md: true
+    self_contained: true
+---
+
+### Summary  
+ In this project, my goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants.
+ In order to predict test data, I divided the original training data into 75% model training data and 25% model test data.  
+ I created a random forest model and a support vector machine model and the accuracy was random forest: 0.9978, support vector machine: 0.948, so we chose the random forest model and predicted test data. 
+
+### Background 
+ Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+### Setup
+ 
+```{r setup, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+Sys.setlocale("LC_TIME","us")
+set.seed(1234)
+```
+
+```{r , echo=FALSE}
+setwd("C:/Users/ito/Desktop/cousera/datasience/8.Practical Machine Learning/pa")
+```
+
+### Version information about R
+ 
+```{r lib, message=FALSE, warning=FALSE}
+library(lattice)
+library(ggplot2)
+library(caret)
+library(gbm)
+library(elasticnet)
+library(e1071)
+library(randomForest)
+sessionInfo()
+```
+
+
+### Getting Data
+ * The training data for this project are available [here](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv)
+ * The test data are available [here](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv)  
+  
+```{r gettingdata,cache=TRUE}
+training <- read.csv("pml-training.csv")
+testing <- read.csv("pml-testing.csv")
+
+# Dimensions
+rbind(training = dim(training),testing = dim(testing))
+```
+The data for this project come from [this source](http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har). If you use the document you create for this class for any purpose please cite them as they have been very generous in allowing their data to be used for this kind of assignment.
+  
+### Processing Data
+ First, remove The Near Zero variance variables . 
+```{r processingdata,cache=TRUE}
+
+#clean The Near Zero variance variables
+nzv <- nearZeroVar(training)
+training_nzv <- training[,-nzv]
+
+# Dimensions
+dim(training_nzv)
+```
+Next, remove the variables which almost is "NA"
+```{r, cache=TRUE}
+na_mean <- sapply(training_nzv, function(x) mean(is.na(x)))
+na <- (na_mean > 0.95)
+
+training_na <- training_nzv[,!na]
+# Dimensions & names
+dim(training_na);head(names(training_na),n=10)
+```
+ For the first 6 rows we do not need.
+```{r, cache=TRUE}
+# remove the columns 
+# from "X" to "num_window" 
+processing <- training_na[-(1:6)]
+dim(processing)
+```
+### the correlation heatmap 
+```{r, cache=TRUE}
+matrix_cor <- cor(processing[,-54])
+heatmap(matrix_cor,Colv = NA,Rowv = NA,col = cm.colors(256))
+```
+  
+Looking at the correlation matrix, we can find combinations of variables with some correlation. However, it seems that their influence is small.
+
+### fitting a model
+Create a prediction model from the training data.I created a random forest model and a support vector machine model.  
+
+### Cross Validation
+We know that a model that fits the original training data does not perfectly fit the test data. Therefore, it is necessary to create a model using cross validation.
+First, 75% of the original training data is used as the training data of the model, and 25% is set as the test data.
+```{r, cache=TRUE}
+inTrain = createDataPartition(processing$classe, p = 0.75,list=F)
+trainingdata = processing[ inTrain,]
+testingdata = processing[-inTrain,]
+
+rbind(train=dim(trainingdata), test=dim(testingdata))
+```
+
+
+### Random Forest
+```{r, cache=TRUE}
+mod_rf <- randomForest(classe~.,data=trainingdata, method = "class")
+
+pre_rf <- predict(mod_rf, newdata = testingdata)
+
+confusionMatrix(pre_rf, testingdata$classe)
+```
+As a result of testing with a random forest, the accuracy is 0.9978.
+
+
+### Support Vector Machines
+```{r, cache=TRUE}
+
+mod_svm <- e1071::svm(classe~.,data=trainingdata)
+
+pre_svm <- predict(mod_svm, newdata = testingdata)
+
+confusionMatrix(pre_svm, testingdata$classe)
+```
+
+As a result of testing with the support vector machine, the accuracy is 0.948, which is lower than the result of the random forest.
+
+
+### Prediction of test data
+Predict test data using random forest that is more accurate than support vector machine.
+```{r, cache=TRUE}
+pre_rf2 <- predict(mod_rf, newdata = testing)
+pre_rf2
+```
